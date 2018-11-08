@@ -101,7 +101,7 @@ int parse_config(const char* config_file, struct tags_config* config)
       read = getline(&line, &len, fp);
       if (errno != 0) {
          error = -1;
-         goto cleanup_parse_config;
+         goto cleanup;
       }
       if (read == -1) { // EOF
          break;
@@ -110,16 +110,16 @@ int parse_config(const char* config_file, struct tags_config* config)
       int scanned_fields = sscanf(line, "%u %ms", &id, &ip_prefix_c);
       if (scanned_fields != 2) {
          error = line_no;
-         goto cleanup_parse_config;
+         goto cleanup;
       }
 
       error = tags_parse_ip_prefix(ip_prefix_c, &ip_prefix, &ip_prefix_length);
       if (error) {
-         goto cleanup_parse_config;
+         goto cleanup;
       }
       error = tags_config_add_record(config, id, ip_prefix, ip_prefix_length);
       if (error) {
-         goto cleanup_parse_config;
+         goto cleanup;
       }
 
       free(ip_prefix_c);
@@ -127,7 +127,7 @@ int parse_config(const char* config_file, struct tags_config* config)
       line_no++;
    }
 
-cleanup_parse_config:
+cleanup:
    if (line) {
       free(line);
    }

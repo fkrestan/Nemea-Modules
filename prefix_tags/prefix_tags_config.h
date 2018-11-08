@@ -1,5 +1,6 @@
 #ifndef __PREFIX_TAGS_CONFIG_H_
 #define __PREFIX_TAGS_CONFIG_H_
+#define _GNU_SOURCE
 
 #include <stdint.h>
 

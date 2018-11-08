@@ -24,6 +24,7 @@
 
 #include "fields.h"
 #include "prefix_tags_config.h"
+#include "prefix_tags_functions.h"
 
 
 UR_FIELDS (
@@ -35,7 +36,7 @@ UR_FIELDS (
 trap_module_info_t *module_info = NULL;
 
 #define MODULE_BASIC_INFO(BASIC) \
-   BASIC("prefix_tags","This module adds PREFIX_TAG field to the output acording to configured ip prefixes.", 1, 0)
+   BASIC("prefix_tags","This module adds PREFIX_TAG field to the output acording to configured ip prefixes.", 1, 1)
 
 #define MODULE_PARAMS(PARAM) \
    PARAM('c', "config", "Configuration file.", required_argument, "string")
@@ -48,79 +49,50 @@ static const int INTERFACE_IN = 0;
 static const int INTERFACE_OUT = 1;
 
 
-int update_output_format(ur_template_t *input_template, const void *data_in, ur_template_t **output_template, void **data_out)
-{
-   // Reallocate output buffer
-   if (ur_rec_varlen_size(input_template, data_in) != 0) {
-      fprintf(stderr, "Error: Recieved input template with variable sized fields - this is currently not supported.\n");
-      return -1;
-   }
-   if (data_out != NULL) {
-      ur_free_record(*data_out);
-   }
-   *data_out = ur_create_record(*output_template, 0); // Dynamic fields are currently not supported
-   if (*data_out == NULL) {
-      return -1;
-   }
-
-   // Copy input template to output template
-   char* input_template_str = ur_template_string(input_template);
-   if (input_template_str == NULL) {
-      return -1;
-   }
-   ur_free_template(*output_template);
-   *output_template = ur_create_template_from_ifc_spec(input_template_str);
-   free(input_template_str);
-   if (*output_template == NULL) {
-      return -1;
-   }
-
-   // Add PREFIX_TAG field
-   *output_template = ur_expand_template("uint32 PREFIX_TAG", *output_template);
-   if (*output_template == NULL) {
-      return -1;
-   }
-   if (ur_set_output_template(INTERFACE_OUT, *output_template) != UR_OK) {
-      return -1;
-   }
-
-   return 0;
-}
-
 int prefix_tags(struct tags_config* config) {
    int error = 0;
-   int recv_error;
-   int send_error;
+   uint32_t prefix_tag;
    const void *data_in = NULL;
    uint16_t data_in_size;
    void *data_out = NULL;
-   uint16_t data_out_size;
-   ur_template_t *input_template = ur_create_input_template(INTERFACE_IN, "", NULL); // Gets updated on first use by TRAP_RECEIVE anyway
-   ur_template_t *output_template = ur_create_output_template(INTERFACE_OUT, "", NULL);
+   ur_template_t *template_in = ur_create_input_template(INTERFACE_IN, "", NULL); // Gets updated on first use by TRAP_RECEIVE anyway
+   ur_template_t *template_out = ur_create_output_template(INTERFACE_OUT, "", NULL);
 
-   if (input_template == NULL || output_template == NULL) {
+   if (template_in == NULL || template_out == NULL) {
       error = -1;
       goto cleanup;
    }
 
    while (stop == 0) {
-      recv_error = TRAP_RECEIVE(INTERFACE_IN, data_in, data_in_size, input_template);
+      int recv_error = TRAP_RECEIVE(INTERFACE_IN, data_in, data_in_size, template_in);
       TRAP_DEFAULT_RECV_ERROR_HANDLING(recv_error, continue, error = -2; goto cleanup)
 
       if (recv_error == TRAP_E_FORMAT_CHANGED) {
          // Copy format to output interface and add PREFIX_TAG
-         error = update_output_format(input_template, data_in, &output_template, &data_out);
+         error = update_output_format(template_in, data_in, &template_out, &data_out);
          if (error) {
             goto cleanup;
          }
       }
 
-      // data_out should have the right size since TRAP_E_FORMAT_CHANGED _had_ to be returned before getting here
-      /* ur_copy_fields(output_template, data_out, input_template, data_in); */
+      // FIXME DEBUG
+      ur_print_template(template_out);
+      ur_print_template(template_in);
 
-      // TODO tag the thing
-      /* send_error = trap_send(INTERFACE_OUT, data, data_size); */
-      /* TRAP_DEFAULT_SEND_ERROR_HANDLING(send_error, continue, error = -3; break) */
+      ip_addr_t src_ip = ur_get(template_in, data_in, F_SRC_IP);
+      ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
+
+      // TODO Determine prefix tag
+      if (is_from_configured_prefix(conig, src_ip, &prefix_tag) || is_from_configured_prefix(conig, dst_ip, &prefix_tag)) {
+         // data_out should have the right size since TRAP_E_FORMAT_CHANGED _had_ to be returned before getting here
+         ur_copy_fields(template_out, data_out, template_in, data_in);
+
+         ur_set(template_out, data_out, F_PREFIX_TAG, prefix_tag);
+
+         uint16_t data_out_size = ur_rec_size(template_out, data_out);
+         int  send_error = trap_send(INTERFACE_OUT, data_out, data_out_size);
+         TRAP_DEFAULT_SEND_ERROR_HANDLING(send_error, continue, error = -3; goto cleanup)
+      }
 
       if (data_in_size <= 1) { // End of stream
          goto cleanup;
@@ -132,8 +104,8 @@ cleanup:
       ur_free_record(data_out);
    }
 
-   ur_free_template(input_template);
-   ur_free_template(output_template);
+   ur_free_template(template_in);
+   ur_free_template(template_out);
    ur_finalize();
 
    return error;
