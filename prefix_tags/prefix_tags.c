@@ -47,6 +47,46 @@ TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1)
 static const int INTERFACE_IN = 0;
 static const int INTERFACE_OUT = 1;
 
+
+int update_output_format(ur_template_t *input_template, const void *data_in, ur_template_t **output_template, void **data_out)
+{
+   // Reallocate output buffer
+   if (ur_rec_varlen_size(input_template, data_in) != 0) {
+      fprintf(stderr, "Error: Recieved input template with variable sized fields - this is currently not supported.\n");
+      return -1;
+   }
+   if (data_out != NULL) {
+      ur_free_record(*data_out);
+   }
+   *data_out = ur_create_record(*output_template, 0); // Dynamic fields are currently not supported
+   if (*data_out == NULL) {
+      return -1;
+   }
+
+   // Copy input template to output template
+   char* input_template_str = ur_template_string(input_template);
+   if (input_template_str == NULL) {
+      return -1;
+   }
+   ur_free_template(*output_template);
+   *output_template = ur_create_template_from_ifc_spec(input_template_str);
+   free(input_template_str);
+   if (*output_template == NULL) {
+      return -1;
+   }
+
+   // Add PREFIX_TAG field
+   *output_template = ur_expand_template("uint32 PREFIX_TAG", *output_template);
+   if (*output_template == NULL) {
+      return -1;
+   }
+   if (ur_set_output_template(INTERFACE_OUT, *output_template) != UR_OK) {
+      return -1;
+   }
+
+   return 0;
+}
+
 int prefix_tags(struct tags_config* config) {
    int error = 0;
    int recv_error;
@@ -67,43 +107,10 @@ int prefix_tags(struct tags_config* config) {
       recv_error = TRAP_RECEIVE(INTERFACE_IN, data_in, data_in_size, input_template);
       TRAP_DEFAULT_RECV_ERROR_HANDLING(recv_error, continue, error = -2; goto cleanup)
 
-      if (recv_error == TRAP_E_FORMAT_CHANGED) { // Copy format to output interface and add PREFIX_TAG
-         if (ur_rec_varlen_size(input_template, data_in) != 0) {
-            fprintf(stderr, "Error: Recieved input template with variable sized fields - this is currently not supported.\n");
-            error = -2;
-            goto cleanup;
-         }
-         // Reallocate output buffer
-         if (data_out != NULL) {
-            ur_free_record(data_out);
-         }
-         data_out = ur_create_record(output_template, 0); // Dynamic fields are currently not supported
-         if (data_out == NULL) {
-            error = -1;
-            goto cleanup;
-         }
-
-         // Copy input template to output template
-         char* input_template_str = ur_template_string(intput_template);
-         if (input_template_str == NULL) {
-            error = -1;
-            goto cleanup;
-         }
-         ur_free_template(output_template);
-         output_template = ur_create_output_template(INTERFACE_OUT, input_template_str, NULL);
-         free(input_template_str);
-         if (output_template == NULL) {
-            error = -1;
-            goto cleanup;
-         }
-
-
-         // TODO add TAG field
-         ur_print_template(input_template);
-
-
-         if (ur_set_output_template(INTERFACE_OUT, output_template) != UR_OK) {
-            error = -6;
+      if (recv_error == TRAP_E_FORMAT_CHANGED) {
+         // Copy format to output interface and add PREFIX_TAG
+         error = update_output_format(input_template, data_in, &output_template, &data_out);
+         if (error) {
             goto cleanup;
          }
       }
