@@ -68,7 +68,6 @@ int prefix_tags(struct tags_config* config) {
 
       if (recv_error == TRAP_E_FORMAT_CHANGED) {
          // Copy format to output interface and add PREFIX_TAG
-         // TODO is this correct?
          error = update_output_format(template_in, data_in, &template_out, &data_out);
          if (error) {
             goto cleanup;
@@ -90,8 +89,6 @@ int prefix_tags(struct tags_config* config) {
          // Set PREFIX_TAG field
          ur_set(template_out, data_out, F_PREFIX_TAG, prefix_tag);
 
-         // FIXME data_out_size does not seem to be right?
-         /* uint16_t data_out_size = ur_rec_size(template_in, data_in) + ur_size_of(UR_TYPE_UINT32); */
          uint16_t data_out_size = ur_rec_size(template_out, data_out);
          debug_print("data_out_size %d\n", data_out_size);
          int  send_error = trap_send(INTERFACE_OUT, data_out, data_out_size);
