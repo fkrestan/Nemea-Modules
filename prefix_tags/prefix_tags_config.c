@@ -3,6 +3,7 @@
 
 #include <unirec/unirec.h>
 
+#include "prefix_tags.h"
 #include "prefix_tags_config.h"
 
 
@@ -96,10 +97,11 @@ int parse_config(const char* config_file, struct tags_config* config)
       return -1;
    }
 
-
    while(1) {
       read = getline(&line, &len, fp);
+      debug_print("getline read %ld, errno %d\n", read, errno);
       if (errno != 0) {
+         perror("Error reading config file");
          error = -1;
          goto cleanup;
       }
@@ -108,16 +110,19 @@ int parse_config(const char* config_file, struct tags_config* config)
       }
 
       int scanned_fields = sscanf(line, "%u %ms", &id, &ip_prefix_c);
+      debug_print("sscanf scanned_fields %d\n", scanned_fields);
       if (scanned_fields != 2) {
          error = line_no;
          goto cleanup;
       }
 
       error = tags_parse_ip_prefix(ip_prefix_c, &ip_prefix, &ip_prefix_length);
+      debug_print("tags_parse_ip_prefix ret %d\n", error);
       if (error) {
          goto cleanup;
       }
       error = tags_config_add_record(config, id, ip_prefix, ip_prefix_length);
+      debug_print("tags_config_add_record ret %d\n", error);
       if (error) {
          goto cleanup;
       }

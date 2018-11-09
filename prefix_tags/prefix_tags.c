@@ -53,6 +53,7 @@ int prefix_tags(struct tags_config* config) {
    const void *data_in = NULL;
    uint16_t data_in_size;
    void *data_out = NULL;
+   // FIXME ERROR: trap_ctx_vset_data_fmt: Uninitialized libtrap context or bad parameters.
    ur_template_t *template_in = ur_create_input_template(INTERFACE_IN, "", NULL); // Gets updated on first use by TRAP_RECEIVE anyway
    ur_template_t *template_out = ur_create_output_template(INTERFACE_OUT, "", NULL);
 
@@ -67,27 +68,32 @@ int prefix_tags(struct tags_config* config) {
 
       if (recv_error == TRAP_E_FORMAT_CHANGED) {
          // Copy format to output interface and add PREFIX_TAG
+         // TODO is this correct?
          error = update_output_format(template_in, data_in, &template_out, &data_out);
          if (error) {
             goto cleanup;
          }
+         if (DEBUG) {
+            ur_print_template(template_out);
+            ur_print_template(template_in);
+         }
       }
 
-      // FIXME DEBUG
-      ur_print_template(template_out);
-      ur_print_template(template_in);
 
       ip_addr_t src_ip = ur_get(template_in, data_in, F_SRC_IP);
       ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
 
-      // TODO Determine prefix tag
       if (is_from_configured_prefix(config, &src_ip, &prefix_tag) || is_from_configured_prefix(config, &dst_ip, &prefix_tag)) {
+         debug_print("tagging %d\n", prefix_tag);
          // data_out should have the right size since TRAP_E_FORMAT_CHANGED _had_ to be returned before getting here
          ur_copy_fields(template_out, data_out, template_in, data_in);
-
+         // Set PREFIX_TAG field
          ur_set(template_out, data_out, F_PREFIX_TAG, prefix_tag);
 
+         // FIXME data_out_size does not seem to be right?
+         /* uint16_t data_out_size = ur_rec_size(template_in, data_in) + ur_size_of(UR_TYPE_UINT32); */
          uint16_t data_out_size = ur_rec_size(template_out, data_out);
+         debug_print("data_out_size %d\n", data_out_size);
          int  send_error = trap_send(INTERFACE_OUT, data_out, data_out_size);
          TRAP_DEFAULT_SEND_ERROR_HANDLING(send_error, continue, error = -3; goto cleanup)
       }
@@ -118,6 +124,7 @@ int main(int argc, char **argv)
 
    INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
    TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
+   errno = 0; // FIXME For some reason, ^^^ sets errno=2 when there is no error causing issues down the line
    TRAP_REGISTER_DEFAULT_SIGNAL_HANDLER();
 
    tags_config_init(&config);
@@ -126,6 +133,7 @@ int main(int argc, char **argv)
       switch (opt) {
       case 'c':
          error = parse_config(optarg, &config);
+         debug_print("parse_config ret %d\n", error);
          if (error != 0) {
             error = -1;
             goto cleanup;
@@ -135,6 +143,7 @@ int main(int argc, char **argv)
    }
 
    error = prefix_tags(&config);
+   debug_print("prefix_tags ret %d\n", error);
 
 cleanup:
    TRAP_DEFAULT_FINALIZATION();
