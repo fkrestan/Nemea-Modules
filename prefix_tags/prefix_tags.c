@@ -23,6 +23,7 @@
 #include <unirec/unirec.h>
 
 #include "fields.h"
+#include "prefix_tags.h"
 #include "prefix_tags_config.h"
 #include "prefix_tags_functions.h"
 
@@ -44,9 +45,6 @@ trap_module_info_t *module_info = NULL;
 static int stop = 0;
 
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1)
-
-static const int INTERFACE_IN = 0;
-static const int INTERFACE_OUT = 1;
 
 
 int prefix_tags(struct tags_config* config) {
@@ -83,7 +81,7 @@ int prefix_tags(struct tags_config* config) {
       ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
 
       // TODO Determine prefix tag
-      if (is_from_configured_prefix(conig, src_ip, &prefix_tag) || is_from_configured_prefix(conig, dst_ip, &prefix_tag)) {
+      if (is_from_configured_prefix(config, &src_ip, &prefix_tag) || is_from_configured_prefix(config, &dst_ip, &prefix_tag)) {
          // data_out should have the right size since TRAP_E_FORMAT_CHANGED _had_ to be returned before getting here
          ur_copy_fields(template_out, data_out, template_in, data_in);
 

@@ -4,6 +4,7 @@
 
 #include <unirec/unirec.h>
 
+#include "prefix_tags.h"
 #include "prefix_tags_config.h"
 #include "prefix_tags_functions.h"
 
@@ -75,6 +76,13 @@ int is_from_prefix(ip_addr_t *ip, ip_addr_t *protected_prefix, int32_t protected
    return 0;
 }
 
-int is_from_configured_prefix(struct tags_config *conig, const ip_addr_t *ip, uint32_t *prefix_tag) {
+int is_from_configured_prefix(struct tags_config *config, ip_addr_t *ip, uint32_t *prefix_tag) {
+   for (int i = 0; i < config->size; i++) {
+      if (is_from_prefix(ip, &(config->ip_prefix[i]), config->ip_prefix_length[i])) {
+         *prefix_tag = config->id[i];
+         return 1;
+      }
+   }
 
+   return 0;
 }
