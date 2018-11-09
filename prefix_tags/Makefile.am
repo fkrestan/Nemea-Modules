@@ -1,6 +1,7 @@
 bin_PROGRAMS=prefix_tags
 
-prefix_tags_CFLAGS=-g -fsanitize=address -fno-omit-frame-pointer
+# FIXME devel
+prefix_tags_CFLAGS=-g -O0 -fsanitize=address -fno-omit-frame-pointer
 prefix_tags_SOURCES=\
 	prefix_tags.c prefix_tags.h \
 	prefix_tags_config.c prefix_tags_config.h \
