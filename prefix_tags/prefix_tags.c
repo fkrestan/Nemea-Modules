@@ -40,11 +40,16 @@ trap_module_info_t *module_info = NULL;
    BASIC("prefix_tags","This module adds PREFIX_TAG field to the output acording to configured ip prefixes.", 1, 1)
 
 #define MODULE_PARAMS(PARAM) \
-   PARAM('c', "config", "Configuration file.", required_argument, "string")
+   PARAM('c', "config", "Configuration file.", required_argument, "string") \
+   PARAM('d', "dst", "Use only DST_IP field for prefix matching (default is both SRC_IP and DST_IP).", no_argument, "none") \
+   PARAM('s', "src", "Use only SRC_IP field for prefix matching (default is both SRC_IP and DST_IP).", no_argument, "none")
 
 static int stop = 0;
 
 TRAP_DEFAULT_SIGNAL_HANDLER(stop = 1)
+
+int CHECK_SRC_IP = 1;
+int CHECK_DST_IP = 1;
 
 
 int prefix_tags(struct tags_config* config) {
@@ -80,7 +85,8 @@ int prefix_tags(struct tags_config* config) {
       ip_addr_t src_ip = ur_get(template_in, data_in, F_SRC_IP);
       ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
 
-      if (is_from_configured_prefix(config, &src_ip, &prefix_tag) || is_from_configured_prefix(config, &dst_ip, &prefix_tag)) {
+      if ((CHECK_SRC_IP && is_from_configured_prefix(config, &src_ip, &prefix_tag)) // Misusing short-circuit evaluation
+          || (CHECK_DST_IP && is_from_configured_prefix(config, &dst_ip, &prefix_tag))) {
          debug_print("tagging %d\n", prefix_tag);
          // data_out should have the right size since TRAP_E_FORMAT_CHANGED _had_ to be returned before getting here
          ur_copy_fields(template_out, data_out, template_in, data_in);
@@ -134,6 +140,13 @@ int main(int argc, char **argv)
             goto cleanup;
          }
          break;
+      case 'd':
+         CHECK_SRC_IP = 0;
+         break;
+      case 's':
+         CHECK_DST_IP = 0;
+         break;
+
       }
    }
 
