@@ -59,9 +59,9 @@ int prefix_tags(struct tags_config* config) {
    uint16_t data_in_size;
    void *data_out = NULL;
    ur_template_t *template_in = ur_create_input_template(INTERFACE_IN, "", NULL); // Gets updated on first use by TRAP_RECEIVE anyway
-   ur_template_t *template_out = ur_create_output_template(INTERFACE_OUT, "", NULL);
+   ur_template_t *template_out = NULL; // Some modules have porblems with changing templates, so it is better to set initial output template to the template that comes in first - see update_output_format
 
-   if (template_in == NULL || template_out == NULL) {
+   if (template_in == NULL) {
       error = -1;
       goto cleanup;
    }
@@ -96,6 +96,7 @@ int prefix_tags(struct tags_config* config) {
          uint16_t data_out_size = ur_rec_size(template_out, data_out);
          debug_print("data_out_size %d\n", data_out_size);
          int  send_error = trap_send(INTERFACE_OUT, data_out, data_out_size);
+         debug_print("send_error %d\n", send_error);
          TRAP_DEFAULT_SEND_ERROR_HANDLING(send_error, continue, error = -3; goto cleanup)
       }
 

@@ -16,7 +16,9 @@ int update_output_format(ur_template_t *template_in, const void *data_in, ur_tem
    if (template_in_str == NULL) {
       return -1;
    }
-   ur_free_template(*template_out);
+   if (*template_out != NULL) {
+      ur_free_template(*template_out);
+   }
    *template_out = ur_create_template_from_ifc_spec(template_in_str);
    free(template_in_str);
    if (*template_out == NULL) {
