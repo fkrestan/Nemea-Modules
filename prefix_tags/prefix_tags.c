@@ -118,9 +118,7 @@ int main(int argc, char **argv)
    struct tags_config config;
 
    INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
-   debug_print("errno %d\n", errno);
    TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
-   debug_print("errno %d\n", errno);
    errno = 0; // FIXME For some reason, ^^^ sets errno=2 when there is no error causing issues down the line
    TRAP_REGISTER_DEFAULT_SIGNAL_HANDLER();
 
