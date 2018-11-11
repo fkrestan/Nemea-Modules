@@ -53,7 +53,6 @@ int prefix_tags(struct tags_config* config) {
    const void *data_in = NULL;
    uint16_t data_in_size;
    void *data_out = NULL;
-   // FIXME ERROR: trap_ctx_vset_data_fmt: Uninitialized libtrap context or bad parameters.
    ur_template_t *template_in = ur_create_input_template(INTERFACE_IN, "", NULL); // Gets updated on first use by TRAP_RECEIVE anyway
    ur_template_t *template_out = ur_create_output_template(INTERFACE_OUT, "", NULL);
 
@@ -77,7 +76,6 @@ int prefix_tags(struct tags_config* config) {
             ur_print_template(template_in);
          }
       }
-
 
       ip_addr_t src_ip = ur_get(template_in, data_in, F_SRC_IP);
       ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
@@ -120,7 +118,9 @@ int main(int argc, char **argv)
    struct tags_config config;
 
    INIT_MODULE_INFO_STRUCT(MODULE_BASIC_INFO, MODULE_PARAMS)
+   debug_print("errno %d\n", errno);
    TRAP_DEFAULT_INITIALIZATION(argc, argv, *module_info);
+   debug_print("errno %d\n", errno);
    errno = 0; // FIXME For some reason, ^^^ sets errno=2 when there is no error causing issues down the line
    TRAP_REGISTER_DEFAULT_SIGNAL_HANDLER();
 
