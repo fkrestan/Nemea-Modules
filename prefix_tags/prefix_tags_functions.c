@@ -28,7 +28,7 @@ int update_output_format(ur_template_t *template_in, const void *data_in, ur_tem
    if (*template_out == NULL) {
       return -1;
    }
-   if (ur_set_input_template(INTERFACE_OUT, *template_out) != UR_OK) {
+   if (ur_set_output_template(INTERFACE_OUT, *template_out) != UR_OK) {
       return -1;
    }
 
