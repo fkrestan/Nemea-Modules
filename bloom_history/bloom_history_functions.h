@@ -1,5 +1,5 @@
 /**
- * \file blooming_history_functions.h
+ * \file bloom_history_functions.h
  * \brief History of communicating entities using bloom filters.
  * \author Filip Krestan <krestfi1@fit.cvut.cz>
  * \date 2018
@@ -41,8 +41,8 @@
  *
  */
 
-#ifndef __BLOOMING_HISTORY_FUNCTIONS_H_
-#define __BLOOMING_HISTORY_FUNCTIONS_H_
+#ifndef __BLOOM_HISTORY_FUNCTIONS_H_
+#define __BLOOM_HISTORY_FUNCTIONS_H_
 
 #include <stdint.h>
 
@@ -102,4 +102,4 @@ int curl_send_bloom(CURL *curl, const char *aggregator_service_url, const struct
 */
 void curl_free_handle(CURL **curl);
 
-#endif // __BLOOMING_HISTORY_FUNCTIONS_H_
+#endif // __BLOOM_HISTORY_FUNCTIONS_H_

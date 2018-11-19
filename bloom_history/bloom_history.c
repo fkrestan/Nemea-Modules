@@ -1,5 +1,5 @@
 /**
- * \file blooming_history.c
+ * \file bloom_history.c
  * \brief History of communicating entities using bloom filters.
  * \author Filip Krestan <krestfi1@fit.cvut.cz>
  * \date 2018
@@ -59,14 +59,15 @@
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
 
-#include "blooming_history_functions.h"
+#include "bloom_history_functions.h"
 #include "fields.h"
 #include "bloom.h"
 
 
 UR_FIELDS (
    ipaddr SRC_IP,
-   ipaddr DST_IP
+   ipaddr DST_IP,
+   uint32 PREFIX_TAG
 )
 
 trap_module_info_t *module_info = NULL;

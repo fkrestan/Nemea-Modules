@@ -29,7 +29,7 @@ Usage
 -----
 
 ```
-TRAP module, libtrap version: 0.11.4 
+TRAP module, libtrap version: 0.11.4
 ===========================================
 Name: History gathering module
 Inputs: 1
@@ -37,7 +37,7 @@ Outputs: 0
 Description:
   This module gathers history of communicating entities and stores them in a bloom filter.
 
-Usage:  blooming_history [COMMON]... [OPTIONS]... 
+Usage:  bloom_history [COMMON]... [OPTIONS]...
 
 Parameters of module [OPTIONS]:
 -------------------------------
@@ -92,7 +92,7 @@ Future development
 ------------------
 
 - Add `gzip` compression
-- Add client/server authentication 
+- Add client/server authentication
 
 
 [1]: https://en.wikipedia.org/wiki/Bloom_filter

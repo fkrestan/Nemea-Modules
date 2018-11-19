@@ -41,7 +41,7 @@
  *
  */
 
-#include "blooming_history_functions.h"
+#include "bloom_history_functions.h"
 
 
 int is_from_prefix(ip_addr_t *ip, ip_addr_t *protected_prefix, int32_t protected_prefix_length)
