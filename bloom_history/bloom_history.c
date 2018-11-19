@@ -59,6 +59,7 @@
 #include <libtrap/trap.h>
 #include <unirec/unirec.h>
 
+#include "bloom_history_config.h"
 #include "bloom_history_functions.h"
 #include "fields.h"
 #include "bloom.h"

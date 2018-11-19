@@ -1,9 +1,13 @@
 bin_PROGRAMS=bloom_history # test_bloom_history
 
+# FIXME Devel
+bloom_history_CFLAGS=-g -O0 -fsanitize=address -fno-omit-frame-pointer
+
 AM_CPPFLAGS=-I$(srcdir)/libbloom -I$(srcdir)/libbloom/murmur2
 
 bloom_history_SOURCES= bloom_history.c \
 	bloom_history_functions.c bloom_history_functions.h \
+	bloom_history_config.c bloom_history_config.h \
 	fields.c fields.h \
 	libbloom/bloom.c libbloom/bloom.h \
 	libbloom/murmur2/MurmurHash2.c libbloom/murmur2/murmurhash2.h
