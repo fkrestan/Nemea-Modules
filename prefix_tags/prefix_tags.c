@@ -82,6 +82,10 @@ int prefix_tags(struct tags_config* config) {
          }
       }
 
+      if (data_in_size <= 1) { // End of stream
+         goto cleanup;
+      }
+
       ip_addr_t src_ip = ur_get(template_in, data_in, F_SRC_IP);
       ip_addr_t dst_ip = ur_get(template_in, data_in, F_DST_IP);
 
@@ -98,10 +102,6 @@ int prefix_tags(struct tags_config* config) {
          int  send_error = trap_send(INTERFACE_OUT, data_out, data_out_size);
          debug_print("send_error %d\n", send_error);
          TRAP_DEFAULT_SEND_ERROR_HANDLING(send_error, continue, error = -3; goto cleanup)
-      }
-
-      if (data_in_size <= 1) { // End of stream
-         goto cleanup;
       }
    }
 
