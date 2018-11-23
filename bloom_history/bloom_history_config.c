@@ -3,6 +3,7 @@
 
 #include <unirec/unirec.h>
 
+#include "bloom.h"
 #include "bloom_history.h"
 #include "bloom_history_config.h"
 
@@ -16,6 +17,8 @@ void bloom_history_config_init(struct bloom_history_config* config)
    config->api_url = NULL;
    config->bloom_entries = NULL;
    config->bloom_fp_error_rate = NULL;
+   config->bloom_list = NULL;
+   config->bloom_list_size = 0;
 }
 
 int bloom_history_config_add_record(struct bloom_history_config* config, uint32_t id, ip_addr_t ip_prefix,
@@ -84,8 +87,20 @@ void bloom_history_config_free(struct bloom_history_config* config)
       free(config->bloom_fp_error_rate);
       config->bloom_fp_error_rate = NULL;
    }
+   if (config->bloom_list) {
+      for (size_t i = 0; i < config->bloom_list_size; i++) {
+         if (config->bloom_list[i]) {
+            bloom_free(config->bloom_list[i]);
+            free(config->bloom_list[i]);
+            config->bloom_list[i] = 0;
+         }
+      }
+      free(config->bloom_list);
+      config->bloom_list = NULL;
+   }
 
    config->size = 0;
+   config->bloom_list_size = 0;
 }
 
 int bloom_history_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length)
@@ -114,7 +129,7 @@ int bloom_history_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* pr
    return 0;
 }
 
-int bloom_history_parse_config(const char* config_file, struct bloom_history_config* config)
+int bloom_history_parse_config(const char* config_file, struct bloom_history_config *config)
 {
    int error = 0;
    FILE * fp;
@@ -130,12 +145,14 @@ int bloom_history_parse_config(const char* config_file, struct bloom_history_con
    char* api_url = NULL;
    int32_t bloom_entries;
    double bloom_fp_error_rate;
+   size_t max_id = 0;
 
    fp = fopen(config_file, "r");
    if (fp == NULL) {
       fprintf(stderr, "Error: %s\n", strerror(errno));
       return -1;
    }
+   bloom_history_config_init(config);
 
    while(1) {
       read = getline(&line, &len, fp);
@@ -167,10 +184,33 @@ int bloom_history_parse_config(const char* config_file, struct bloom_history_con
       if (error) {
          goto cleanup;
       }
+      if (id > max_id) {
+         max_id = id;
+      }
 
       free(ip_prefix_c);
       ip_prefix_c = NULL;
       line_no++;
+   }
+
+   // Allocate bloom filters on the right places
+   config->bloom_list_size = max_id + 1;
+   config->bloom_list = calloc(config->bloom_list_size, sizeof(*(config->bloom_list)));
+   if (!config->bloom_list) {
+      error = -42;
+      goto cleanup;
+   }
+   for (size_t i = 0; i < config->size; i++) {
+      uint32_t id = config->id[i];
+      config->bloom_list[id] = calloc(1, sizeof(struct bloom));
+      if (!config->bloom_list[id]) {
+         error = -43;
+         goto cleanup;
+      }
+      if (bloom_init(config->bloom_list[id], config->bloom_entries[i], config->bloom_fp_error_rate[i])) {
+         error = -44;
+         goto cleanup;
+      }
    }
 
 cleanup:

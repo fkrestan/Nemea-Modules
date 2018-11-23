@@ -6,6 +6,8 @@
 
 #include <unirec/unirec.h>
 
+#include "bloom.h"
+
 
 /* 1 170.30.0.0/23 https://localhost:8081/ 2000000 0.01 */
 struct bloom_history_config {
@@ -16,7 +18,11 @@ struct bloom_history_config {
    char** api_url;
    int32_t* bloom_entries;
    double* bloom_fp_error_rate;
+   // TODO some explanation
+   struct bloom** bloom_list;
+   size_t bloom_list_size;
 };
+
 
 void bloom_history_config_init(struct bloom_history_config* config);
 
