@@ -27,7 +27,6 @@
 #include "fields.h"
 
 
-
 trap_module_info_t *module_info = NULL;
 
 #define MODULE_BASIC_INFO(BASIC) \
@@ -96,7 +95,7 @@ int bloom_history(struct bloom_history_config *config)
 
       if (data_in_size < ur_rec_fixlen_size(template_input)) {
          if (data_in_size <= 1) {
-            break; // End of data (used for testing purposes)
+            break; // End of data
          } else {
             fprintf(stderr, "Error: data with wrong size received (expected size: >= %hu, received size: %hu)\n",
                   ur_rec_fixlen_size(template_input), data_in_size);
@@ -104,6 +103,7 @@ int bloom_history(struct bloom_history_config *config)
          }
       }
 
+      /* Get ip prefix tag and see if we have configuration for it */
       uint32_t prefix_tag = ur_get(template_input, data_in, F_PREFIX_TAG);
 
       if (prefix_tag < config->bloom_list_size && config->bloom_list[prefix_tag] != NULL) {

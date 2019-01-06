@@ -1,0 +1,8 @@
+[
+  {"id": 1, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8081/1", "ip_prefix": "170.30.0.0/23"},
+  {"id": 2, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8081/2", "ip_prefix": "170.31.0.0/24"},
+  {"id": 3, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8081/3", "ip_prefix": "170.32.0.0/25"},
+  {"id": 4, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8081/4", "ip_prefix": "170.33.0.0/26"},
+  {"id": 5, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8080/5", "ip_prefix": "61.0.0.0/8"},
+  {"id": 6, "bloom_fp_error_rate": 0.01, "bloom_entries": 20000000, "api_url": "https://localhost:8080/6", "ip_prefix": "110.29.28.8/8"}
+]
