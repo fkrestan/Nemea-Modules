@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdint.h>
 
+#include <jansson.h>
 #include <unirec/unirec.h>
 
 #include "prefix_tags.h"
@@ -51,7 +52,7 @@ void tags_config_free(struct tags_config* config)
    config->size = 0;
 }
 
-int tags_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length)
+int tags_parse_ip_prefix(const char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length)
 {
    long prefix_length_l;
    char *prefix_slash = strchr(ip_prefix, '/');
@@ -59,7 +60,7 @@ int tags_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_leng
    if (prefix_slash == NULL) {
       return -1;
    }
-   *prefix_slash = '\0';
+   *((char*)prefix_slash) = '\0'; // Don't do tihs at home kids
 
    if (!ip_from_str(ip_prefix, addr)) {
       return -1;
@@ -80,66 +81,68 @@ int tags_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_leng
 int parse_config(const char* config_file, struct tags_config* config)
 {
    int error = 0;
-   FILE * fp;
-   char * line = NULL;
-   size_t len = 0;
-   uint32_t line_no = 1;
-   ssize_t read;
 
-   uint32_t id;
-   char* ip_prefix_c = NULL;
-   ip_addr_t ip_prefix;
-   uint32_t ip_prefix_length;
-
-   fp = fopen(config_file, "r");
+   // Parse JSON
+   FILE* fp = fopen(config_file, "r");
    if (fp == NULL) {
       fprintf(stderr, "Error: %s\n", strerror(errno));
       return -1;
    }
+   json_error_t* j_error = NULL;
+   json_t* j_root = json_loadf(fp, JSON_REJECT_DUPLICATES, j_error);
+   if (j_root == NULL) {
+      fprintf(stderr, "Error: parsing config on line %d: %s\n", j_error->line, j_error->text);
+      error = 1;
+      goto cleanup;
+   }
+   if (!json_is_array(j_root)) {
+      fprintf(stderr, "Error: bad JSON format\n");
+      error = 1;
+      goto cleanup;
+   }
 
-   while(1) {
-      read = getline(&line, &len, fp);
-      debug_print("getline read %ld, errno %d\n", read, errno);
-      if (errno != 0) {
-         perror("Error reading config file");
-         error = -1;
+   // Populate config struct
+   for (size_t i = 0; i < json_array_size(j_root); i++) {
+      int ok = 1;
+      json_t* j_prefix = json_array_get(j_root, i);
+      json_t* j_tmp;
+
+      j_tmp = json_object_get(j_prefix, "id");
+      ok &= json_is_integer(j_tmp);
+      uint32_t id = json_integer_value(j_tmp);
+      debug_print("tags_parse_config id=%d\n", id);
+
+      j_tmp = json_object_get(j_prefix, "ip_prefix");
+      ok &= json_is_string(j_tmp) && j_tmp;
+      const char* ip_prefix_c = json_string_value(j_tmp); // freed by json-c
+      debug_print("tags_parse_config ip_prefix=%s\n", ip_prefix_c);
+
+      if (!ok) {
+         fprintf(stderr, "Error: bad config format\n");
+         error = 1;
          goto cleanup;
       }
-      if (read == -1) { // EOF
-         break;
-      }
 
-      int scanned_fields = sscanf(line, "%u %ms", &id, &ip_prefix_c);
-      debug_print("sscanf scanned_fields %d\n", scanned_fields);
-      if (scanned_fields != 2) {
-         error = line_no;
-         goto cleanup;
-      }
-
+      ip_addr_t ip_prefix;
+      uint32_t ip_prefix_length;
       error = tags_parse_ip_prefix(ip_prefix_c, &ip_prefix, &ip_prefix_length);
-      debug_print("tags_parse_ip_prefix ret %d\n", error);
+      debug_print("tags_parse_ip_prefix ip_prefix=%s ret=%d\n", ip_prefix_c, error);
       if (error) {
          goto cleanup;
       }
+
       error = tags_config_add_record(config, id, ip_prefix, ip_prefix_length);
       debug_print("tags_config_add_record ret %d\n", error);
       if (error) {
          goto cleanup;
       }
-
-      free(ip_prefix_c);
-      ip_prefix_c = NULL;
-      line_no++;
-   }
+   }	
 
 cleanup:
-   if (line) {
-      free(line);
-   }
-   if (ip_prefix_c) {
-      free(ip_prefix_c);
-   }
    fclose(fp);
+   if (j_root) {
+      json_decref(j_root); // decrement ref-count to free whole j_root
+   }
 
    return error;
 }

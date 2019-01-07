@@ -20,7 +20,7 @@ int tags_config_add_record(struct tags_config* config, uint32_t id, ip_addr_t ip
 
 void tags_config_free(struct tags_config* config);
 
-int tags_parse_ip_prefix(char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length);
+int tags_parse_ip_prefix(const char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length);
 
 int parse_config(const char* config_file, struct tags_config* config);
 
