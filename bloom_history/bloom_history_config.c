@@ -149,7 +149,11 @@ int bloom_history_parse_config(const char* config_file, struct bloom_history_con
    json_error_t* j_error = NULL;
    json_t* j_root = json_loadf(fp, JSON_REJECT_DUPLICATES, j_error);
    if (j_root == NULL) {
-      fprintf(stderr, "Error: parsing config on line %d: %s\n", j_error->line, j_error->text);
+      if (j_error != NULL) {
+         fprintf(stderr, "Error: parsing config on line %d: %s\n", j_error->line, j_error->text);
+      } else {
+         fprintf(stderr, "Error: unable to parse config file '%s'\n", config_file);
+      }
       error = 1;
       goto cleanup;
    }
