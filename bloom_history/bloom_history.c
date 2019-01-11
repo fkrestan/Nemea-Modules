@@ -30,7 +30,7 @@
 trap_module_info_t *module_info = NULL;
 
 #define MODULE_BASIC_INFO(BASIC) \
-   BASIC("History gathering module", \
+   BASIC("bloom_history", \
         "This module gathers history of communicating entities and stores them in a bloom filter.", 1, 0)
 
 #define MODULE_PARAMS(PARAM) \
