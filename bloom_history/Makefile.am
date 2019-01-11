@@ -1,7 +1,7 @@
 bin_PROGRAMS=bloom_history # test_bloom_history
 
-# FIXME Devel
-bloom_history_CFLAGS=-g -O0 -fsanitize=address -fno-omit-frame-pointer
+# Devel
+# prefix_tags_CFLAGS=-g -O0 -fsanitize=address -fno-omit-frame-pointer -DDEBUG=1
 
 AM_CPPFLAGS=-I$(srcdir)/libbloom -I$(srcdir)/libbloom/murmur2
 
