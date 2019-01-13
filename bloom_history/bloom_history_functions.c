@@ -154,7 +154,7 @@ void *pthread_entry_upload(void *config_)
          pthread_mutex_unlock(&MUTEX_BLOOM_SWAP);
 
          clock_gettime(CLOCK_REALTIME, &ts);
-         timestamp_to = ts.tv_sec;
+         timestamp_to = ts.tv_sec + 1; // +1: In case EOF is sent immediately after start
 
          // Compose endpoint url
          asprintf_error = asprintf(&url, "%s/%ld/%ld/", config->api_url[i], timestamp_from, timestamp_to);
