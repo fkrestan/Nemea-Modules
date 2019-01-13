@@ -13,8 +13,6 @@ void bloom_history_config_init(struct bloom_history_config* config)
 {
    config->size = 0;
    config->id = NULL;
-   config->ip_prefix_length = NULL;
-   config->ip_prefix = NULL;
    config->api_url = NULL;
    config->bloom_entries = NULL;
    config->bloom_fp_error_rate = NULL;
@@ -22,21 +20,16 @@ void bloom_history_config_init(struct bloom_history_config* config)
    config->bloom_list_size = 0;
 }
 
-int bloom_history_config_add_record(struct bloom_history_config* config, uint32_t id, ip_addr_t ip_prefix,
-                           uint32_t ip_prefix_length, const char* api_url, int32_t bloom_entries,
-                           double bloom_fp_error_rate)
+int bloom_history_config_add_record(struct bloom_history_config* config, uint32_t id, const char* api_url, 
+                                    int32_t bloom_entries, double bloom_fp_error_rate)
 {
    size_t new_size = config->size + 1;
 
    config->id = realloc(config->id, sizeof(*(config->id)) * new_size);
-   config->ip_prefix = realloc(config->ip_prefix, sizeof(*(config->ip_prefix)) * new_size);
-   config->ip_prefix_length = realloc(config->ip_prefix_length, sizeof(*(config->ip_prefix_length)) * new_size);
    config->api_url = realloc(config->api_url, sizeof(*(config->api_url)) * new_size);
    config->bloom_entries = realloc(config->bloom_entries, sizeof(*(config->bloom_entries)) * new_size);
    config->bloom_fp_error_rate = realloc(config->bloom_fp_error_rate, sizeof(*(config->bloom_fp_error_rate)) * new_size);
    if (!config->id
-       || !config->ip_prefix
-       || !config->ip_prefix_length
        || !config->api_url
        || !config->bloom_entries
        || !config->bloom_fp_error_rate) {
@@ -46,8 +39,6 @@ int bloom_history_config_add_record(struct bloom_history_config* config, uint32_
    config->size = new_size;
 
    config->id[new_size-1] = id;
-   config->ip_prefix[new_size-1] = ip_prefix;
-   config->ip_prefix_length[new_size-1] = ip_prefix_length;
    // Store string copy
    config->api_url[new_size-1] = malloc((strlen(api_url)+1) * sizeof(*api_url));
    if (!config->api_url[new_size-1]) {
@@ -65,14 +56,6 @@ void bloom_history_config_free(struct bloom_history_config* config)
    if (config->id) {
       free(config->id);
       config->id = NULL;
-   }
-   if (config->ip_prefix_length) {
-      free(config->ip_prefix_length);
-      config->ip_prefix_length = NULL;
-   }
-   if (config->ip_prefix) {
-      free(config->ip_prefix);
-      config->ip_prefix = NULL;
    }
    if (config->api_url) {
       for (size_t i = 0; i < config->size; i++) {
@@ -106,32 +89,6 @@ void bloom_history_config_free(struct bloom_history_config* config)
 
    config->size = 0;
    config->bloom_list_size = 0;
-}
-
-int bloom_history_parse_ip_prefix(const char* ip_prefix, ip_addr_t* addr, uint32_t* prefix_length)
-{
-   long prefix_length_l;
-   char *prefix_slash = strchr(ip_prefix, '/');
-
-   if (prefix_slash == NULL) {
-      return -1;
-   }
-   *((char*)prefix_slash) = '\0'; // Don't do tihs at home kids
-
-   if (!ip_from_str(ip_prefix, addr)) {
-      return -1;
-   }
-
-   prefix_length_l = strtol(prefix_slash + 1, NULL, 10);
-   if (errno != 0) {
-      return -1;
-   }
-   *prefix_length = prefix_length_l;
-   if (*prefix_length != prefix_length_l) {
-      return -1;
-   }
-
-   return 0;
 }
 
 int bloom_history_parse_config(const char* config_file, struct bloom_history_config *config)
@@ -174,11 +131,6 @@ int bloom_history_parse_config(const char* config_file, struct bloom_history_con
       uint32_t id = json_integer_value(j_tmp);
       debug_print("bloom_history_parse_config id=%d\n", id);
 
-      j_tmp = json_object_get(j_prefix, "ip_prefix");
-      ok &= json_is_string(j_tmp) && j_tmp;
-      const char* ip_prefix_c = json_string_value(j_tmp); // freed by json-c
-      debug_print("bloom_history_parse_config ip_prefix=%s\n", ip_prefix_c);
-
       j_tmp = json_object_get(j_prefix, "api_url");
       ok &= json_is_string(j_tmp) && j_tmp;
       const char* api_url = json_string_value(j_tmp); // freed by json-c
@@ -200,15 +152,7 @@ int bloom_history_parse_config(const char* config_file, struct bloom_history_con
          goto cleanup;
       }
 
-      ip_addr_t ip_prefix;
-      uint32_t ip_prefix_length;
-      error = bloom_history_parse_ip_prefix(ip_prefix_c, &ip_prefix, &ip_prefix_length);
-      debug_print("bloom_history_parse_ip_prefix ip_prefix=%s ret=%d\n", ip_prefix_c, error);
-      if (error) {
-         goto cleanup;
-      }
-
-      error = bloom_history_config_add_record(config, id, ip_prefix, ip_prefix_length, api_url, bloom_entries, bloom_fp_error_rate);
+      error = bloom_history_config_add_record(config, id, api_url, bloom_entries, bloom_fp_error_rate);
       debug_print("bloom_history_config_add_record ret=%d\n", error);
       if (error) {
          goto cleanup;
