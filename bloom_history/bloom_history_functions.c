@@ -131,6 +131,7 @@ void *pthread_entry_upload(void *config_)
       timestamp_from = ts.tv_sec;
       ts.tv_sec += UPLOAD_INTERVAL;
       pthread_cond_timedwait(&CV_TIMER_STOP, &MUTEX_TIMER_STOP, &ts);
+      pthread_mutex_unlock(&MUTEX_TIMER_STOP);
 
       for (int i = 0; i < config->size; i++) {
          struct bloom *bloom_new, *bloom_send;

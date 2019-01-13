@@ -95,6 +95,7 @@ int bloom_history(struct bloom_history_config *config)
 
       if (data_in_size < ur_rec_fixlen_size(template_input)) {
          if (data_in_size <= 1) {
+            stop = 1;
             break; // End of data
          } else {
             fprintf(stderr, "Error: data with wrong size received (expected size: >= %hu, received size: %hu)\n",
